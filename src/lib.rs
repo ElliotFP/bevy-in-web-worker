@@ -1,6 +1,7 @@
 use bevy::{ecs::system::SystemState, prelude::*, utils::HashMap, window::WindowCloseRequested};
 use std::ops::{Deref, DerefMut};
 
+// Import modules and their contents
 mod web_ffi;
 pub use web_ffi::*;
 
@@ -11,13 +12,15 @@ mod ray_pick;
 
 mod bevy_app;
 
+// Define the main WorkerApp struct
 pub struct WorkerApp {
     pub app: App,
-    /// 手动包装事件需要
+    /// Entity representing the window, needed for manual event wrapping
     pub window: Entity,
     pub scale_factor: f32,
 }
 
+// Implement Deref trait for WorkerApp
 impl Deref for WorkerApp {
     type Target = App;
 
@@ -26,6 +29,7 @@ impl Deref for WorkerApp {
     }
 }
 
+// Implement DerefMut trait for WorkerApp
 impl DerefMut for WorkerApp {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.app
@@ -33,6 +37,7 @@ impl DerefMut for WorkerApp {
 }
 
 impl WorkerApp {
+    // Create a new WorkerApp instance
     pub fn new(app: App) -> Self {
         Self {
             app,
@@ -41,31 +46,36 @@ impl WorkerApp {
         }
     }
 
+    // Convert logical coordinates to physical coordinates
     pub fn to_physical_size(&self, x: f32, y: f32) -> Vec2 {
         Vec2::new(x * self.scale_factor, y * self.scale_factor)
     }
 }
 
+// Define ActiveInfo resource to manage active entities and interaction state
 #[derive(Debug, Resource)]
 pub(crate) struct ActiveInfo {
     pub hover: HashMap<Entity, u64>,
     pub selection: HashMap<Entity, u64>,
-    /// 响应拖动的对象
+    /// Entity responding to drag events
     pub drag: Entity,
-    /// 上一帧的拖动位置
+    /// Last frame's drag position
     pub last_drag_pos: Vec2,
-    /// 是否运行在 worker 中
+    /// Whether running in a worker context
     pub is_in_worker: bool,
-    /// 是否自动执行场景对象的旋转动画
+    /// Whether to automatically animate scene objects
     pub auto_animate: bool,
-    /// 剩余帧数
+    /// Remaining frames to update
     ///
-    /// 当关闭了自动运行的帧动画之后，场景将仅由鼠标事件驱动更新。由于帧渲染需要由 requestAnimationFrame 驱动
-    /// 来保持与浏览器显示刷新的同步，所以鼠标事件不会直接调用 app.update(), 而是重置此待更新的帧数
+    /// When automatic frame animation is disabled, the scene will only update in response to mouse events.
+    /// Since frame rendering needs to be driven by requestAnimationFrame to maintain synchronization with
+    /// the browser's display refresh, mouse events won't directly call app.update(). Instead, they reset
+    /// this count of remaining frames to update.
     pub remaining_frames: u32,
 }
 
 impl ActiveInfo {
+    // Create a new ActiveInfo instance with default values
     pub fn new() -> Self {
         ActiveInfo {
             hover: HashMap::new(),
@@ -79,14 +89,23 @@ impl ActiveInfo {
     }
 }
 
+// Function to close the Bevy window
 pub(crate) fn close_bevy_window(mut app: Box<App>) {
+    // Create a SystemState to access window entities
     let mut windows_state: SystemState<Query<(Entity, &mut Window)>> =
         SystemState::from_world(app.world_mut());
     let windows = windows_state.get_mut(app.world_mut());
+    
+    // Get the last window entity
     let (entity, _window) = windows.iter().last().unwrap();
+    
+    // Send a WindowCloseRequested event for the window
     app.world_mut()
         .send_event(WindowCloseRequested { window: entity });
+    
+    // Apply changes to the world
     windows_state.apply(app.world_mut());
 
+    // Update the app one last time
     app.update();
 }

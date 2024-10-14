@@ -1,3 +1,4 @@
+// Import necessary modules and types
 use crate::ray_pick::RayPickPlugin;
 use crate::{ActiveInfo, WorkerApp};
 use bevy::color::palettes::css::BLANCHED_ALMOND;
@@ -15,9 +16,11 @@ use rand::Rng;
 use std::f32::consts::PI;
 use std::ops::Deref;
 
+// Initialize the application
 pub(crate) fn init_app() -> WorkerApp {
     let mut app = App::new();
 
+    // Configure default plugins
     let mut default_plugins = DefaultPlugins.set(ImagePlugin::default_nearest());
     default_plugins = default_plugins.set(bevy::window::WindowPlugin {
         primary_window: Some(bevy::window::Window {
@@ -28,6 +31,7 @@ pub(crate) fn init_app() -> WorkerApp {
     });
     app.add_plugins((default_plugins, RayPickPlugin));
 
+    // Add systems to the app
     app.add_systems(Startup, setup)
         .add_systems(Update, (rotate, update_aabbes))
         .add_systems(PostUpdate, render_active_shapes);
@@ -44,7 +48,7 @@ enum Shape {
     // Cylinder(Cylinder),
     // None,
 }
-/// 标记是否 选中/高亮
+/// Marks whether an object is selected/highlighted
 #[derive(Component, Default)]
 pub(crate) struct ActiveState {
     pub hover: bool,
@@ -59,17 +63,20 @@ impl ActiveState {
 
 const X_EXTENT: f32 = 13.0;
 
+// Setup function to initialize the scene
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    // Create debug material
     let debug_material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
         ..default()
     });
 
+    // Define mesh handles
     let meshe_handles = [
         meshes.add(Cuboid::default()),
         meshes.add(Capsule3d::default()),
@@ -80,7 +87,7 @@ fn setup(
         meshes.add(Cuboid::default()),
         meshes.add(Sphere::default().mesh().ico(5).unwrap()),
     ];
-    // 包围盒形状
+    // Define bounding box shapes
     let shapes = [
         Shape::Box(Cuboid::from_size(Vec3::splat(1.1))),
         Shape::Box(Cuboid::from_size(Vec3::new(1., 2., 1.))),
@@ -95,6 +102,7 @@ fn setup(
     let num_shapes = meshe_handles.len();
     let mut rng = rand::thread_rng();
 
+    // Spawn shapes in a grid
     for i in 0..num_shapes {
         for y in 0..5 {
             for z in 0..1 {
@@ -120,6 +128,7 @@ fn setup(
         }
     }
 
+    // Spawn a point light
     commands.spawn(PointLightBundle {
         point_light: PointLight {
             shadows_enabled: true,
@@ -132,7 +141,7 @@ fn setup(
         ..default()
     });
 
-    // ground plane
+    // Spawn ground plane
     commands.spawn(PbrBundle {
         mesh: meshes.add(Plane3d::default().mesh().size(50.0, 50.0)),
         material: materials.add(Color::from(SILVER)),
@@ -140,12 +149,14 @@ fn setup(
         ..default()
     });
 
+    // Spawn camera
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0.0, -9., 18.0).looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
         ..default()
     });
 }
 
+// System to rotate shapes
 fn rotate(
     app_info: Res<ActiveInfo>,
     mut query: Query<&mut Transform, With<Shape>>,
@@ -160,7 +171,7 @@ fn rotate(
     }
 }
 
-/// 绘制 选中/高亮 包围盒
+/// Render selected/highlighted bounding boxes
 fn render_active_shapes(mut gizmos: Gizmos, query: Query<(&Shape, &Transform, &ActiveState)>) {
     for (shape, transform, active_state) in query.iter() {
         if !active_state.is_active() {
@@ -211,7 +222,7 @@ fn uv_debug_texture() -> Image {
     )
 }
 
-/// entity 的 aabb
+/// Entity's AABB (Axis-Aligned Bounding Box)
 #[derive(Component, Debug)]
 pub struct CurrentVolume(Aabb3d);
 
@@ -223,16 +234,18 @@ impl Deref for CurrentVolume {
     }
 }
 
-/// 更新 aabb
+/// Update AABBs
 fn update_aabbes(
     mut commands: Commands,
     mut config_store: ResMut<GizmoConfigStore>,
     query: Query<(Entity, &Shape, &Transform), Or<(Changed<Shape>, Changed<Transform>)>>,
 ) {
+    // Set gizmo line width
     for (_, config, _) in config_store.iter_mut() {
         config.line_width = 3.;
     }
 
+    // Update AABB for each entity with changed shape or transform
     for (entity, shape, transform) in query.iter() {
         let translation = transform.translation;
         let rotation = transform.rotation;
