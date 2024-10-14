@@ -1,6 +1,8 @@
-// Worker 有自己的作用域，无法直接访问全局作用域的函数/对象, 无法使用 ES6 module.
+// Workers have their own scope and cannot directly access functions/objects in the global scope.
+// They also cannot use ES6 modules.
 importScripts("./bevy_in_web_worker.js");
 
+// Destructure the imported functions from the wasm_bindgen object
 const {
   init_bevy_app,
   is_preparation_completed,
@@ -14,66 +16,74 @@ const {
   set_auto_animation,
 } = wasm_bindgen;
 
+// Initialize variables for app state
 let appHandle = 0;
 let initFinished = 0;
 let isStoppedRunning = false;
 let renderBlockTime = 1;
 
 async function init_wasm_in_worker() {
-  // 装载 wasm 文件
+  // Load the WebAssembly file
   await wasm_bindgen("./bevy_in_web_worker_bg.wasm");
 
-  // 创建 app
+  // Create the Bevy app and store its handle
   appHandle = init_bevy_app();
 
-  // 监听主线程发来的消息.
+  // Listen for messages from the main thread
   self.onmessage = async (event) => {
     let data = event.data;
     switch (data.ty) {
       case "init":
+        // Initialize the app window with the provided canvas
         let canvas = data.canvas;
         createWorkerAppWindow(canvas, data.devicePixelRatio);
         break;
 
       case "startRunning":
+        // Resume the animation loop if it was stopped
         if (isStoppedRunning) {
           isStoppedRunning = false;
-          // 开始帧循环
           requestAnimationFrame(enterFrame);
         }
         break;
 
       case "stopRunning":
+        // Stop the animation loop
         isStoppedRunning = true;
         break;
 
       case "mousemove":
+        // Handle mouse movement
         mouse_move(appHandle, data.x, data.y);
         break;
 
       case "hover":
-        // 设置 hover（高亮） 效果
+        // Set hover (highlight) effect
         set_hover(appHandle, data.list);
         break;
 
       case "select":
-        // 设置 选中 效果
+        // Set selection effect
         set_selection(appHandle, data.list);
         break;
 
       case "leftBtDown":
+        // Handle left mouse button press
         left_bt_down(appHandle, data.pickItem, data.x, data.y);
         break;
 
       case "leftBtUp":
+        // Handle left mouse button release
         left_bt_up(appHandle);
         break;
 
       case "blockRender":
+        // Set the time to block rendering (for performance testing)
         renderBlockTime = data.blockTime;
         break;
 
       case "autoAnimation":
+        // Toggle auto-animation
         set_auto_animation(appHandle, data.autoAnimation);
         break;
 
@@ -82,33 +92,34 @@ async function init_wasm_in_worker() {
     }
   };
 
-  // 通知主线程 worker 已准备好
+  // Notify the main thread that the worker is ready
   self.postMessage({ ty: "workerIsReady" });
 }
 init_wasm_in_worker();
 
 function createWorkerAppWindow(offscreenCanvas, devicePixelRatio) {
-  // 创建渲染窗口
+  // Create the rendering window using the offscreen canvas
   create_window_by_offscreen_canvas(
     appHandle,
     offscreenCanvas,
     devicePixelRatio
   );
 
-  // 查询就绪状态
+  // Check the preparation state
   getPreparationState();
 
-  // 开始帧循环
+  // Start the frame loop
   requestAnimationFrame(enterFrame);
 }
 
 /**
- * 开始渲染帧
+ * Start rendering frames
  *
  * https://developer.mozilla.org/en-US/docs/Web/API/DedicatedWorkerGlobalScope/requestAnimationFrame
- * requestAnimationFrame 是与 window 绘制同步的，在此处手动限制帧率会造成因与 window 刷新频率不一致而视觉画面不流畅
+ * requestAnimationFrame is synchronized with the window's drawing. Manually limiting the frame rate here
+ * may cause visual stuttering due to inconsistency with the window refresh rate.
  *
- * TODO: 前 3 帧之间先等待 1 秒
+ * TODO: Wait 1 second between the first 3 frames
  */
 let frameIndex = 0;
 let frameCount = 0;
@@ -117,7 +128,7 @@ let frameFlag = 0;
 function enterFrame(_dt) {
   if (appHandle === 0 || isStoppedRunning) return;
 
-  // 当 app 准备好时，执行 app 的帧循环
+  // Execute the app's frame loop when it's ready
   if (initFinished > 0) {
     if (
       frameIndex >= frameFlag ||
@@ -128,23 +139,24 @@ function enterFrame(_dt) {
     }
     frameCount++;
   } else {
+    // Check if the app is ready
     getPreparationState();
   }
   requestAnimationFrame(enterFrame);
 }
 
-/** 获取 bevy app 就绪状态 */
+/** Get the Bevy app's readiness state */
 function getPreparationState() {
   initFinished = is_preparation_completed(appHandle);
 }
 
-/** 发送 ray pick 结果 */
+/** Send ray pick results to the main thread */
 function send_pick_from_worker(pickList) {
   self.postMessage({ ty: "pick", list: pickList });
 }
 
-/** 执行阻塞 */
+/** Execute a blocking operation (for performance testing) */
 function block_from_worker() {
   const start = performance.now();
-  while (performance.now() - start < renderBlockTime) {}
+  while (performance.now() - start < renderBlockTime) { }
 }
