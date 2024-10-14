@@ -27,21 +27,21 @@ Implemented `CanvasViewPlugin` to replace `bevy_winit`, allowing the Bevy engine
 
 ![Bevy in Web Worker](./screenshot.png) 
 
-## 代码运行
+## Running the Code
 
 ```sh
-# 编译 WASM：
-# 添加 Rust WebAssembly target
+# Compile WASM:
+# Add Rust WebAssembly target
 rustup target add wasm32-unknown-unknown
-# 安装 wasm-bindgen 命令行工具
+# Install wasm-bindgen command line tool
 cargo install -f wasm-bindgen-cli --version 0.2.92
 
-# 运行：
-# 先安装 http server
+# Run:
+# First install http server
 cargo install basic-http-server
-# 然后使用下边的脚本运行
+# Then use the script below to run
 sh ./run-wasm.sh
 
-# 构建 release 包
+# Build release package
 sh ./build-wasm.sh
 ```
