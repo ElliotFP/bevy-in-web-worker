@@ -1,29 +1,29 @@
 # Bevy in Web Worker
-展示如何在 Web Worker 中运行 Bevy 引擎，以及 HTML 元素与 Bevy 之间的交互。
+Demonstrates how to run the Bevy engine in a Web Worker and the interaction between HTML elements and Bevy.
 
-实现了 `CanvasViewPlugin` 来替代 `bevy_winit`，使 Bevy 引擎能够脱离主线程，在 Web Worker 中高效运行，从而显著提升了应用的性能和响应速度。同时，还演示了 HTML 元素和 Bevy 引擎之间的双向通信，实现了复杂的交互模式来验证 Engine 放进 Web Worker 后与主线程交互的通信时延与性能。
+Implemented `CanvasViewPlugin` to replace `bevy_winit`, allowing the Bevy engine to run efficiently in a Web Worker separate from the main thread, significantly improving application performance and responsiveness. It also demonstrates two-way communication between HTML elements and the Bevy engine, implementing complex interaction patterns to verify communication latency and performance between the Engine in the Web Worker and the main thread.
 
-**验证点：**
+**Verification points:**
 
-1. 主线程与 Worker 之间事件通信成本是否会很高。
-2. 异步的 pick 接口是否会导致用户交互体验变差。
-3. 主线程阻塞对 事件/ worker 的影响。
-4. 鼠标事件，onmessage 及 render 内阻塞对体验上的影响。
+1. Whether the communication cost between the main thread and Worker is high.
+2. Whether the asynchronous pick interface will lead to poor user interaction experience.
+3. The impact of main thread blocking on events/worker.
+4. The impact of blocking mouse events, onmessage, and render on the user experience.
 
-**针对上面验证点的设计：**
+**Design for the above verification points:**
 
-1. 不对鼠标事件触发频率做任何 **Throttle**, 每一个 mousemove 事件都会发送给 worker, 由 worker 执行一次 ray pick 后将结果发回给主线程;
-2. 设计了高交互复杂度 **选中/高亮** 逻辑：
-    1. 主线程 postMsg 给 worker -> 
-    2. worker 转交任务给 engine 执行 ray pick -> 
-    3. 将结果从 engine 发给 worker -> 
-    4. 由 worker postMsg 给主线程 -> 
-    5. 主线程再 postMsg 给 worker 执行需要的 **选中/高亮**
-3. 模拟了主线程阻塞的场景，可以控制单帧阻塞时长，同时左上角有一个**主线程卡顿指示器**便于观察阻塞结果;
-4. 界面中同时提供了 主线程与 Worker 线程 两个运行实例，方便直观对比;
-5. 模拟了 mousemove, onmessage 及 render 内阻塞的场景;
-6. 提供了按住鼠标左键拖动场景对象的功能;
-7. 模拟了工具类 App 的帧渲染逻辑：关闭场景动画后，帧渲染就完全由鼠标事件驱动;
+1. No **Throttle** is applied to mouse event trigger frequency, every mousemove event is sent to the worker, which performs a ray pick and sends the result back to the main thread;
+2. Designed a highly complex **selection/highlight** logic:
+    1. Main thread postMsg to worker -> 
+    2. Worker passes task to engine to execute ray pick -> 
+    3. Results are sent from engine to worker -> 
+    4. Worker postMsg to main thread -> 
+    5. Main thread then postMsg to worker to execute required **selection/highlight**
+3. Simulated main thread blocking scenarios, can control single frame blocking duration, with a **main thread stutter indicator** in the top left corner for easy observation of blocking results;
+4. Interface provides both main thread and Worker thread running instances for easy visual comparison;
+5. Simulated blocking scenarios in mousemove, onmessage, and render;
+6. Provided functionality to drag scene objects by holding the left mouse button;
+7. Simulated frame rendering logic for tool-like apps: after turning off scene animation, frame rendering is entirely driven by mouse events;
 
 ![Bevy in Web Worker](./screenshot.png) 
 
