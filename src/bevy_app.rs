@@ -60,120 +60,130 @@ pub(crate) fn init_app() -> WorkerApp {
     let mut app = App::new();
 
     // Configure default plugins
-    // let mut default_plugins = DefaultPlugins.set(ImagePlugin::default_nearest());
-    // default_plugins = default_plugins.set(bevy::window::WindowPlugin {
-    //     primary_window: Some(bevy::window::Window {
-    //         present_mode: bevy::window::PresentMode::AutoNoVsync,
-    //         ..default()
-    //     }),
-    //     ..default()
-    // });
-    app.add_plugins(DefaultPlugins.set(WindowPlugin {
-        primary_window: Some(Window {
-            fit_canvas_to_parent: true,
-            prevent_default_event_handling: false,
+    let mut default_plugins = DefaultPlugins.set(ImagePlugin::default_nearest());
+    default_plugins = default_plugins.set(bevy::window::WindowPlugin {
+        primary_window: Some(bevy::window::Window {
+            present_mode: bevy::window::PresentMode::AutoNoVsync,
             ..default()
         }),
         ..default()
-    }))
-    //.add_plugins(NoCameraPlayerPlugin)
-    .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-    .add_plugins(RapierDebugRenderPlugin::default())
-    .add_systems(Startup, setup_graphics)
-    .add_systems(Startup, setup_ground)
-    .insert_resource(drill_holes_vec.clone())
-    .add_systems(
-        Startup,
-        move |commands: Commands,
-              meshes: ResMut<Assets<Mesh>>,
-              materials: ResMut<Assets<StandardMaterial>>,
-              drill_holes_vec: Res<DrillHoles>| {
-            setup_bench(
-                commands,
-                meshes,
-                materials,
-                &bench_dimensions,
-                &bench_resolution,
-                &bench_position,
-                &drill_holes_vec,
-            );
-        },
-    )
-    //.add_systems(Update, handle_touch_input)
-    .add_systems(
-        Update,
-        move |commands: Commands,
-              rapier_context: ResMut<RapierContext>,
-              time: Res<Time>,
-              drill_holes: Res<DrillHoles>,
-              entity_query: Query<(&Transform, Option<&mut ExternalImpulse>)>| {
-            drill_hole_go_boom_system(
-                commands,
-                rapier_context,
-                drill_holes,
-                time,
-                64.0,
-                entity_query,
-            );
-        },
-    );
+    });
+
+    app.add_plugins((default_plugins, RayPickPlugin));
+
+    app.add_systems(Startup, setup)
+        .add_systems(Update, (rotate, update_aabbes))
+        .add_systems(PostUpdate, render_active_shapes);
 
     WorkerApp::new(app)
+
+    // app.add_plugins(DefaultPlugins.set(WindowPlugin {
+    //     primary_window: Some(Window {
+    //         fit_canvas_to_parent: true,
+    //         prevent_default_event_handling: false,
+    //         ..default()
+    //     }),
+    //     ..default()
+    // }))
+    // app.add_plugins((default_plugins, RayPickPlugin))
+    // //.add_plugins(NoCameraPlayerPlugin)
+    // .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+    // .add_plugins(RapierDebugRenderPlugin::default())
+    // .add_systems(Startup, setup_graphics)
+    // .add_systems(Startup, setup_ground)
+    // .add_systems(Update, (rotate, update_aabbes))
+    // .add_systems(PostUpdate, render_active_shapes)
+    // .insert_resource(drill_holes_vec.clone())
+    // .add_systems(
+    //     Startup,
+    //     move |commands: Commands,
+    //           meshes: ResMut<Assets<Mesh>>,
+    //           materials: ResMut<Assets<StandardMaterial>>,
+    //           drill_holes_vec: Res<DrillHoles>| {
+    //         setup_bench(
+    //             commands,
+    //             meshes,
+    //             materials,
+    //             &bench_dimensions,
+    //             &bench_resolution,
+    //             &bench_position,
+    //             &drill_holes_vec,
+    //         );
+    //     },
+    // )
+    // //.add_systems(Update, handle_touch_input)
+    // .add_systems(
+    //     Update,
+    //     move |commands: Commands,
+    //           rapier_context: ResMut<RapierContext>,
+    //           time: Res<Time>,
+    //           drill_holes: Res<DrillHoles>,
+    //           entity_query: Query<(&Transform, Option<&mut ExternalImpulse>)>| {
+    //         drill_hole_go_boom_system(
+    //             commands,
+    //             rapier_context,
+    //             drill_holes,
+    //             time,
+    //             64.0,
+    //             entity_query,
+    //         );
+    //     },
+    // );
 }
 
-fn setup_graphics(mut commands: Commands) {
-    // Add a camera so we can see the debug-render.
+// fn setup_graphics(mut commands: Commands) {
+//     // Add a camera so we can see the debug-render.
 
-    let look_from = Vec3::new(10.0, 5.0, 30.0);
-    let look_at = Vec3::new(10.0, 2.0, 5.0);
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(look_from.x, look_from.y, look_from.z)
-                .looking_at(look_at, Vec3::Y),
-            ..Default::default()
-        },
-        TouchCamera { sensitivity: 0.005 },
-        //FlyCam,
-    ));
-}
+//     let look_from = Vec3::new(10.0, 5.0, 30.0);
+//     let look_at = Vec3::new(10.0, 2.0, 5.0);
+//     commands.spawn((
+//         Camera3dBundle {
+//             transform: Transform::from_xyz(look_from.x, look_from.y, look_from.z)
+//                 .looking_at(look_at, Vec3::Y),
+//             ..Default::default()
+//         },
+//         TouchCamera { sensitivity: 0.005 },
+//         //FlyCam,
+//     ));
+// }
 
-fn handle_touch_input(
-    touches: Res<Touches>,
-    mut query: Query<(&mut Transform, &TouchCamera)>,
-    time: Res<Time>,
-) {
-    let (mut transform, touch_camera) = query.single_mut();
+// fn handle_touch_input(
+//     touches: Res<Touches>,
+//     mut query: Query<(&mut Transform, &TouchCamera)>,
+//     time: Res<Time>,
+// ) {
+//     let (mut transform, touch_camera) = query.single_mut();
 
-    // Handle two-finger pan
-    if let Some(touch_a) = touches.get_pressed(0) {
-        if let Some(touch_b) = touches.get_pressed(1) {
-            let delta_a = touch_a.delta();
-            let delta_b = touch_b.delta();
-            let avg_delta = (delta_a + delta_b) / 2.0;
-            transform.translation += Vec3::new(
-                -avg_delta.x * touch_camera.sensitivity,
-                avg_delta.y * touch_camera.sensitivity,
-                0.0,
-            );
-        }
-    }
+//     // Handle two-finger pan
+//     if let Some(touch_a) = touches.get_pressed(0) {
+//         if let Some(touch_b) = touches.get_pressed(1) {
+//             let delta_a = touch_a.delta();
+//             let delta_b = touch_b.delta();
+//             let avg_delta = (delta_a + delta_b) / 2.0;
+//             transform.translation += Vec3::new(
+//                 -avg_delta.x * touch_camera.sensitivity,
+//                 avg_delta.y * touch_camera.sensitivity,
+//                 0.0,
+//             );
+//         }
+//     }
 
-    // Handle pinch-to-zoom
-    if touches.iter().count() == 2 {
-        let touch_a = touches.iter().next().unwrap();
-        let touch_b = touches.iter().nth(1).unwrap();
+//     // Handle pinch-to-zoom
+//     if touches.iter().count() == 2 {
+//         let touch_a = touches.iter().next().unwrap();
+//         let touch_b = touches.iter().nth(1).unwrap();
 
-        let prev_distance = touch_a
-            .previous_position()
-            .distance(touch_b.previous_position());
-        let current_distance = touch_a.position().distance(touch_b.position());
+//         let prev_distance = touch_a
+//             .previous_position()
+//             .distance(touch_b.previous_position());
+//         let current_distance = touch_a.position().distance(touch_b.position());
 
-        let zoom_factor =
-            (prev_distance - current_distance) * touch_camera.sensitivity * time.delta_seconds();
-        let forward = transform.forward();
-        transform.translation += forward * zoom_factor * 50.0;
-    }
-}
+//         let zoom_factor =
+//             (prev_distance - current_distance) * touch_camera.sensitivity * time.delta_seconds();
+//         let forward = transform.forward();
+//         transform.translation += forward * zoom_factor * 50.0;
+//     }
+// }
 
 /// A marker component for our shapes so we can query them separately from the ground plane
 #[derive(Component, Clone)]
@@ -208,7 +218,7 @@ fn setup(
 ) {
     // Create debug material
     let debug_material = materials.add(StandardMaterial {
-        base_color_texture: Some(images.add(uv_debug_texture())),
+        base_color: Color::srgb(0.0, 1.0, 0.0),
         ..default()
     });
 
@@ -287,7 +297,7 @@ fn setup(
 
     // Spawn camera
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, -9., 18.0).looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
+        transform: Transform::from_xyz(0.0, -12.0, 5.0).looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
         ..default()
     });
 }
