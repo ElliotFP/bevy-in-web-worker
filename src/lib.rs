@@ -8,8 +8,6 @@ pub use web_ffi::*;
 mod canvas_view;
 use canvas_view::*;
 
-mod ray_pick;
-
 mod bevy_app;
 
 // Elliot Imports

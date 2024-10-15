@@ -259,6 +259,7 @@ dependencies = [
  "console_error_panic_hook",
  "console_log",
  "js-sys",
+ "parking_lot",
  "rand",
  "raw-window-handle",
  "uuid",
