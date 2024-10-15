@@ -12,6 +12,11 @@ mod ray_pick;
 
 mod bevy_app;
 
+// Elliot Imports
+mod setup;
+mod useful_structs;
+mod drill_hole_go_boom;
+
 // Define the main WorkerApp struct
 pub struct WorkerApp {
     pub app: App,

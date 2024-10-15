@@ -23,6 +23,7 @@ bevy = { version = "0.14", features = [
     "webgpu",
 ], default-features = false }
 bevy_rapier3d = {version = "0.27.0", features = ["simd-stable", "debug-render"]}
+bevy_flycam = "0.14.1"
 uuid = { version = "1.7.0", features = ["v4"] }
 rand = "0.8"
 # Web only

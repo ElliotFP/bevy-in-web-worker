@@ -26,25 +26,25 @@ function create_main_app() {
   if (appHandle > 0) return;
 
   appHandle = init_bevy_app();
-  // 创建渲染窗口
+  // Create rendering window
   let devicePixelRatio = window.devicePixelRatio;
   create_window_by_canvas(appHandle, "main-thread-canvas", devicePixelRatio);
 
-  // 开始动画
+  // Start animation
   requestAnimationFrame(enterFrame);
 }
 
-// 启动 engine 实例
+// Start engine instance
 window.start_main_app = () => {
   isStoppedRunning = false;
   requestAnimationFrame(enterFrame);
   setContainerOpacity("100%");
 };
 
-// 停止 engine 实例
+// Stop engine instance
 window.stop_main_app = () => {
   //   release_app(appHandle);
-  //   // 重置状态
+  //   // Reset state
   //   appHandle = 0;
   //   initFinished = 0;
   //   window.release_app = undefined;
@@ -77,13 +77,13 @@ window.set_main_app_auto_animation = (needsAnimate) => {
 };
 
 function enterFrame(_dt) {
-  // 当 app 准备好时，执行 app 的帧循环
+  // When the app is ready, execute the app's frame loop
   if (appHandle === 0 || isStoppedRunning) return;
 
   if (initFinished > 0) {
     enter_frame(appHandle);
   } else {
-    // 查询就绪状态
+    // Query ready status
     initFinished = is_preparation_completed(appHandle);
   }
   requestAnimationFrame(enterFrame);

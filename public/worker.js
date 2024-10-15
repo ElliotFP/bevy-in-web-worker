@@ -129,6 +129,7 @@ function enterFrame(_dt) {
   if (appHandle === 0 || isStoppedRunning) return;
 
   // Execute the app's frame loop when it's ready
+  console.log("initFinished", initFinished);
   if (initFinished > 0) {
     if (
       frameIndex >= frameFlag ||
@@ -138,6 +139,9 @@ function enterFrame(_dt) {
       frameIndex++;
     }
     frameCount++;
+    console.log("frameCount", frameCount);
+    console.log("frameIndex", frameIndex);
+    console.log("frameFlag", frameFlag);
   } else {
     // Check if the app is ready
     getPreparationState();
