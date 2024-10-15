@@ -28,35 +28,35 @@ struct TouchCamera {
     sensitivity: f32,
 }
 
+    // // adding some stuff
+    // let bench_dimensions: [f32; 3] = [20.0, 4.0, 10.0];
+    // let bench_resolution: [f32; 3] = [0.2, 0.2, 0.2];
+    // let bench_position: [f32; 3] = [0.0, 0.1, 0.0];
+    // let drill_hole_1_position: (f32, f32) = (6.0, 5.0);
+    // let drill_hole_1_radius: f32 = 1.0;
+    // let drill_hole_1_height: f32 = 3.6;
+    // let drill_hole_2_position: (f32, f32) = (14.0, 5.0);
+    // let drill_hole_2_radius: f32 = 1.0;
+    // let drill_hole_2_height: f32 = 3.6;
+
+    // let drill_hole_1 = DrillHole {
+    //     position: Vec3::new(drill_hole_1_position.0, 0.0, drill_hole_1_position.1),
+    //     radius: drill_hole_1_radius,
+    //     height: drill_hole_1_height,
+    //     timing: 0.0,
+    // };
+    // let drill_hole_2 = DrillHole {
+    //     position: Vec3::new(drill_hole_2_position.0, 0.0, drill_hole_2_position.1),
+    //     radius: drill_hole_2_radius,
+    //     height: drill_hole_2_height,
+    //     timing: 2.0,
+    // };
+    // let drill_holes_vec: DrillHoles = DrillHoles(vec![drill_hole_1, drill_hole_2]);
+
+
 // Initialize the application
 pub(crate) fn init_app() -> WorkerApp {
 
-    // adding some stuff
-    let bench_dimensions: [f32; 3] = [20.0, 4.0, 10.0];
-    let bench_resolution: [f32; 3] = [0.2, 0.2, 0.2];
-    let bench_position: [f32; 3] = [0.0, 0.1, 0.0];
-    let drill_hole_1_position: (f32, f32) = (6.0, 5.0);
-    let drill_hole_1_radius: f32 = 1.0;
-    let drill_hole_1_height: f32 = 3.6;
-    let drill_hole_2_position: (f32, f32) = (14.0, 5.0);
-    let drill_hole_2_radius: f32 = 1.0;
-    let drill_hole_2_height: f32 = 3.6;
-
-    let drill_hole_1 = DrillHole {
-        position: Vec3::new(drill_hole_1_position.0, 0.0, drill_hole_1_position.1),
-        radius: drill_hole_1_radius,
-        height: drill_hole_1_height,
-        timing: 0.0,
-    };
-    let drill_hole_2 = DrillHole {
-        position: Vec3::new(drill_hole_2_position.0, 0.0, drill_hole_2_position.1),
-        radius: drill_hole_2_radius,
-        height: drill_hole_2_height,
-        timing: 2.0,
-    };
-    let drill_holes_vec: DrillHoles = DrillHoles(vec![drill_hole_1, drill_hole_2]);
-
-    // end of adding stuff
     let mut app = App::new();
 
     // Configure default plugins
@@ -216,6 +216,53 @@ fn setup(
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+
+    // adding some stuff
+    const bench_dimensions: [f32; 3] = [20.0, 4.0, 10.0];
+    const bench_resolution: [f32; 3] = [0.2, 0.2, 0.2];
+    const bench_position: [f32; 3] = [0.0, 0.1, 0.0];
+    const drill_hole_1_position: (f32, f32) = (6.0, 5.0);
+    const drill_hole_1_radius: f32 = 1.0;
+    const drill_hole_1_height: f32 = 3.6;
+    const drill_hole_2_position: (f32, f32) = (14.0, 5.0);
+    const drill_hole_2_radius: f32 = 1.0;
+    const drill_hole_2_height: f32 = 3.6;
+
+    const drill_hole_1: DrillHole = DrillHole {
+        position: Vec3::new(drill_hole_1_position.0, 0.0, drill_hole_1_position.1),
+        radius: drill_hole_1_radius,
+        height: drill_hole_1_height,
+        timing: 0.0,
+    };
+    const drill_hole_2: DrillHole = DrillHole {
+        position: Vec3::new(drill_hole_2_position.0, 0.0, drill_hole_2_position.1),
+        radius: drill_hole_2_radius,
+        height: drill_hole_2_height,
+        timing: 2.0,
+    };
+    let drill_holes_vec: DrillHoles = DrillHoles(vec![drill_hole_1, drill_hole_2]);
+
+
+    const COLLIDER_GROUP_RADIUS: usize = 1;
+    let x_dim = bench_dimensions[0];
+    let y_dim = bench_dimensions[1];
+    let z_dim = bench_dimensions[2];
+
+    let x_res = bench_resolution[0];
+    let y_res = bench_resolution[1];
+    let z_res = bench_resolution[2];
+
+    let x_num_slices = (x_dim / x_res) as usize;
+    let y_num_slices = (y_dim / y_res) as usize;
+    let z_num_slices = (z_dim / z_res) as usize;
+
+    let cube_mesh = meshes.add(Cuboid::new(x_res, y_res, z_res));
+    let cube_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(1.0, 0.0, 0.0),
+        ..default()
+    });
+    let pool = ComputeTaskPool::get();
+    
     // Create debug material
     let debug_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.0, 1.0, 0.0),
@@ -248,31 +295,83 @@ fn setup(
     let num_shapes = meshe_handles.len();
     let mut rng = rand::thread_rng();
 
-    // Spawn shapes in a grid
-    for i in 0..num_shapes {
-        for y in 0..5 {
-            for z in 0..1 {
-                let index = rng.gen_range(0..num_shapes);
-                let mesh = meshe_handles[index].to_owned();
-                let shape = shapes[index].to_owned();
-                let transform = Transform::from_xyz(
-                    -X_EXTENT / 2. + i as f32 / (num_shapes - 1) as f32 * X_EXTENT,
-                    (3.0 - y as f32) * 3. - 2.0,
-                    2. + 4.5 * z as f32,
-                );
-                commands.spawn((
-                    PbrBundle {
-                        mesh: mesh.clone(),
-                        material: debug_material.clone(),
-                        transform: transform.with_rotation(Quat::from_rotation_x(-PI / 4.)),
-                        ..default()
-                    },
-                    shape.clone(),
-                    ActiveState::default(),
-                ));
+    // shenanigans to spawn the cubes
+    let cube_data: Vec<_> = pool.scope(|s| {
+        for x in 0..x_num_slices {
+            // let begin_index = max(0, x/2-COLLIDER_GROUP_RADIUS);
+            // let end_index = min(x_num_slices/2, x/2+COLLIDER_GROUP_RADIUS);
+            // let collider_group: Vec<String> = bench_column_collider_groups[begin_index..=end_index].iter().map(|(_, group_name)| group_name.clone()).collect();
+            // println!("{:?}", collider_group);
+            for y in 0..y_num_slices {
+                for z in 0..z_num_slices {
+                    let x_pos = bench_position[0] + x as f32 * x_res;
+                    let y_pos = bench_position[1] + y as f32 * y_res;
+                    let z_pos = bench_position[2] + z as f32 * z_res;
+                    // if is_drill_hole(x_pos, z_pos, drill_holes) {
+                    //     continue;
+                    // }
+                    s.spawn(async move {
+                        (
+                            Transform::from_xyz(x_pos, y_pos, z_pos),
+                            Collider::cuboid(x_res / 2.0, y_res / 2.0, z_res / 2.0),
+                            ColliderMassProperties::Mass(rand::random::<f32>() * 10.0), // Random mass between 0 and 10
+                        )
+                    })
+                }
             }
         }
-    }
+    });
+
+    // add mesh to the cubesafter adding the colliders
+    let cube_mesh = cube_mesh.clone();
+    let cube_material = cube_material.clone();
+    commands.spawn_batch(
+        cube_data
+            .into_iter()
+            .map(move |(transform, collider, mass)| {
+                (
+                    PbrBundle {
+                        mesh: cube_mesh.clone(),
+                        material: cube_material.clone(),
+                        transform,
+                        ..default()
+                    },
+                    RigidBody::Dynamic,
+                    collider,
+                    ColliderMassProperties::Mass(2.0),
+                )
+            }),
+    );
+
+
+
+    
+
+    // // Spawn shapes in a grid
+    // for i in 0..num_shapes {
+    //     for y in 0..5 {
+    //         for z in 0..1 {
+    //             let index = rng.gen_range(0..num_shapes);
+    //             let mesh = meshe_handles[index].to_owned();
+    //             let shape = shapes[index].to_owned();
+    //             let transform = Transform::from_xyz(
+    //                 -X_EXTENT / 2. + i as f32 / (num_shapes - 1) as f32 * X_EXTENT,
+    //                 (3.0 - y as f32) * 3. - 2.0,
+    //                 2. + 4.5 * z as f32,
+    //             );
+    //             commands.spawn((
+    //                 PbrBundle {
+    //                     mesh: mesh.clone(),
+    //                     material: debug_material.clone(),
+    //                     transform: transform.with_rotation(Quat::from_rotation_x(-PI / 4.)),
+    //                     ..default()
+    //                 },
+    //                 shape.clone(),
+    //                 ActiveState::default(),
+    //             ));
+    //         }
+    //     }
+    // }
 
     // Spawn a point light
     commands.spawn(PointLightBundle {
@@ -297,7 +396,7 @@ fn setup(
 
     // Spawn camera
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, -12.0, 5.0).looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
+        transform: Transform::from_xyz(0.0, -50.0, 15.0).looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
         ..default()
     });
 }
